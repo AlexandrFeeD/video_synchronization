@@ -1,0 +1,11 @@
+.venv
+venv/
+
+data/1.avi
+data/2.avi
+data/3.avi
+data/4.avi
+data/1.txt
+data/2.txt
+data/3.txt
+data/4.txt
