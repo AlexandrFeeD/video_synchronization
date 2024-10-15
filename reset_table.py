@@ -47,39 +47,33 @@ def connect_to_db(config: Dict[str, str]) -> psycopg2.extensions.connection:
         port=config["port"]
     )
 
-def insert_annotations(data_folder: str, config_path: str, sql_path: str) -> None:
+def recreate_table(config_path: str, sql_path: str) -> None:
     """
-    Загружает данные аннотаций из файлов и вставляет их в таблицу базы данных.
+    Удаляет таблицу, если она существует, и создает новую таблицу.
 
     Args:
-        data_folder (str): Путь к папке с файлами аннотаций.
         config_path (str): Путь к файлу конфигурации базы данных.
-        sql_path (str): Путь к файлу с SQL запросом для вставки данных.
+        sql_path (str): Путь к файлу с SQL запросом для создания таблицы.
     """
     db_config = load_db_config(config_path)
 
     conn = connect_to_db(db_config)
     cursor = conn.cursor()
 
-    insert_query = load_sql_query(sql_path)
+    recreate_table_sql = load_sql_query(sql_path)
 
-    annotation_files = [os.path.join(data_folder, f'{i}.txt') for i in range(1, 5)]
-    video_files = [os.path.join(data_folder, f'{i}.avi') for i in range(1, 5)]
-    
-    for i, annotation_file in enumerate(annotation_files):
-        video_name = os.path.basename(video_files[i])
-        with open(annotation_file, 'r') as f:
-            for line in f:
-                timestamp = float(line.strip())
-                cursor.execute(insert_query, (timestamp, video_name))
-                print(f"Inserted: {timestamp}, {video_name}")
-
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        cursor.execute(recreate_table_sql)
+        conn.commit()
+        print("Таблица video_annotations успешно создана заново.")
+    except Exception as e:
+        conn.rollback()
+        print(f"Ошибка при создании таблицы: {e}")
+    finally:
+        cursor.close()
+        conn.close()
 
 if __name__ == "__main__":
-    data_folder = "data"
     config_path = "./config/db_config.json"
-    sql_path = "./sql/insert_annotation.sql"
-    insert_annotations(data_folder, config_path, sql_path)
+    sql_path = "./sql/recreate_table.sql"
+    recreate_table(config_path, sql_path)
